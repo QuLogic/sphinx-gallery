@@ -218,8 +218,6 @@ def save_figures(image_path, fig_count, gallery_conf):
     figure_list = []
 
     for fig_num in plt.get_fignums():
-        # Set the fig_num figure as the current figure as we can't
-        # save a figure that's not the current figure.
         fig = plt.figure(fig_num)
         kwargs = {}
         to_rgba = matplotlib.colors.colorConverter.to_rgba
@@ -232,6 +230,7 @@ def save_figures(image_path, fig_count, gallery_conf):
         current_fig = image_path.format(fig_count + fig_num)
         fig.savefig(current_fig, **kwargs)
         figure_list.append(current_fig)
+    plt.close('all')
 
     if gallery_conf.get('find_mayavi_figures', False):
         from mayavi import mlab
