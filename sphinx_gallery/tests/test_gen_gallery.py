@@ -230,8 +230,8 @@ def test_config_backreferences(sphinx_app_wrapper):
     sphinx_app = sphinx_app_wrapper.create_sphinx_app()
     cfg = sphinx_app.config
     assert cfg.project == "Sphinx-Gallery <Tests>"
-    assert cfg.sphinx_gallery_conf["backreferences_dir"] == os.path.join(
-        "gen_modules", "backreferences"
+    assert cfg.sphinx_gallery_conf["backreferences_dir"] == str(
+        Path("gen_modules", "backreferences")
     )
     build_warn = sphinx_app._warning.getvalue()
     assert build_warn == ""
