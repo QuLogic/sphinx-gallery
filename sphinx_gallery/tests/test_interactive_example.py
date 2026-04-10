@@ -239,7 +239,7 @@ def test_check_jupyterlite_conf():
     app.extensions = ["jupyterlite_sphinx"]
     assert check_jupyterlite_conf(None, app) is None
     assert check_jupyterlite_conf({}, app) == {
-        "jupyterlite_contents": os.path.join("srcdir", "jupyterlite_contents"),
+        "jupyterlite_contents": str(Path("srcdir", "jupyterlite_contents")),
         "use_jupyter_lab": True,
         "notebook_modification_function": None,
     }
@@ -249,7 +249,7 @@ def test_check_jupyterlite_conf():
         "use_jupyter_lab": False,
     }
     expected = {
-        "jupyterlite_contents": os.path.join("srcdir", "this_is_the_contents_dir"),
+        "jupyterlite_contents": str(Path("srcdir", "this_is_the_contents_dir")),
         "use_jupyter_lab": False,
         "notebook_modification_function": None,
     }
@@ -261,7 +261,7 @@ def test_check_jupyterlite_conf():
     conf = {"notebook_modification_function": notebook_modification_function}
 
     expected = {
-        "jupyterlite_contents": os.path.join("srcdir", "jupyterlite_contents"),
+        "jupyterlite_contents": str(Path("srcdir", "jupyterlite_contents")),
         "use_jupyter_lab": True,
         "notebook_modification_function": notebook_modification_function,
     }

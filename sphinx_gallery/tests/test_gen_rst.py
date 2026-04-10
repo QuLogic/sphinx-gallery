@@ -3,7 +3,6 @@
 """Testing the rst files generator."""
 
 import ast
-import codecs
 import codeop
 import importlib
 import io
@@ -451,12 +450,8 @@ def test_fail_example(gallery_conf, failing_code, want, log_collector, req_pil):
     gallery_conf.update(image_scrapers=(), reset_modules=())
     gallery_conf.update(filename_pattern="raise.py")
 
-    with codecs.open(
-        os.path.join(gallery_conf["examples_dir"], "raise.py"),
-        mode="w",
-        encoding="utf-8",
-    ) as f:
-        f.write("\n".join(failing_code))
+    path = Path(gallery_conf["examples_dir"], "raise.py")
+    path.write_text("\n".join(failing_code), encoding="utf-8")
 
     sg.generate_file_rst(
         "raise.py",
@@ -474,15 +469,10 @@ def test_fail_example(gallery_conf, failing_code, want, log_collector, req_pil):
     assert "_check_input" not in msg
 
     # read rst file and check if it contains traceback output
-
-    with codecs.open(
-        os.path.join(gallery_conf["gallery_dir"], "raise.rst"),
-        mode="r",
-        encoding="utf-8",
-    ) as f:
-        ex_failing_blocks = f.read().count("pytb")
-        assert ex_failing_blocks != 0, "Did not run into errors in bad code"
-        assert ex_failing_blocks <= 1, "Did not stop executing script after error"
+    path = Path(gallery_conf["gallery_dir"], "raise.rst")
+    ex_failing_blocks = path.read_text(encoding="utf-8").count("pytb")
+    assert ex_failing_blocks != 0, "Did not run into errors in bad code"
+    assert ex_failing_blocks <= 1, "Did not stop executing script after error"
 
 
 def _generate_rst(gallery_conf, fname, content):
@@ -507,14 +497,9 @@ def _generate_rst(gallery_conf, fname, content):
     rst : str
         The generated reST code.
     """
-    with codecs.open(
-        os.path.join(gallery_conf["examples_dir"], fname), mode="w", encoding="utf-8"
-    ) as f:
-        f.write("\n".join(content))
-    with codecs.open(
-        os.path.join(gallery_conf["examples_dir"], "README.txt"), "w", "utf8"
-    ):
-        pass
+    path = Path(gallery_conf["examples_dir"], fname)
+    path.write_text("\n".join(content), encoding="utf-8")
+    Path(gallery_conf["examples_dir"], "README.txt").write_text("")
 
     # generate rst file
     generate_dir_rst(
@@ -525,12 +510,8 @@ def _generate_rst(gallery_conf, fname, content):
         is_subsection=False,
     )
     # read rst file and check if it contains code output
-    rst_fname = os.path.splitext(fname)[0] + ".rst"
-    with codecs.open(
-        os.path.join(gallery_conf["gallery_dir"], rst_fname), mode="r", encoding="utf-8"
-    ) as f:
-        rst = f.read()
-    return rst
+    rst_fname = Path(gallery_conf["gallery_dir"], fname).with_suffix(".rst")
+    return rst_fname.read_text(encoding="utf-8")
 
 
 ALPHA_CONTENT = '''
@@ -676,8 +657,8 @@ def test_exclude_implicit(gallery_conf, exclusion, expected, monkeypatch, req_pi
 )
 def test_gen_dir_rst(gallery_conf, gallery_header):
     """Test gen_dir_rst."""
-    with open(os.path.join(gallery_conf["src_dir"], gallery_header), "wb") as fid:
-        fid.write("Testing\n=======\n\nÓscar here.".encode())
+    header_path = Path(gallery_conf["src_dir"], gallery_header)
+    header_path.write_bytes("Testing\n=======\n\nÓscar here.".encode())
     out = generate_dir_rst(
         gallery_conf["src_dir"], gallery_conf["gallery_dir"], gallery_conf, []
     )
@@ -693,8 +674,8 @@ def test_gen_dir_rst(gallery_conf, gallery_header):
 )
 def test_gen_dir_rst_invalid_header(gallery_conf, gallery_header):
     """Check `_get_gallery_header` raises error for invalid header extension."""
-    with open(os.path.join(gallery_conf["src_dir"], gallery_header), "wb") as fid:
-        fid.write("Testing\n=======\n\nÓscar here.".encode())
+    header_path = Path(gallery_conf["src_dir"], gallery_header)
+    header_path.write_bytes("Testing\n=======\n\nÓscar here.".encode())
     with pytest.raises(ExtensionError, match="does not have a GALLERY_HEADER"):
         generate_dir_rst(
             gallery_conf["src_dir"], gallery_conf["gallery_dir"], gallery_conf, []
@@ -718,11 +699,8 @@ def test_pattern_matching(gallery_conf, log_collector, req_pil):
     fnames = ["plot_0.py", "plot_1.py", "plot_2.py"]
     for fname in fnames:
         rst = _generate_rst(gallery_conf, fname, CONTENT)
-        rst_fname = os.path.splitext(fname)[0] + ".rst"
-        if re.search(
-            gallery_conf["filename_pattern"],
-            os.path.join(gallery_conf["gallery_dir"], rst_fname),
-        ):
+        rst_fname = Path(gallery_conf["gallery_dir"], fname).with_suffix(".rst")
+        if re.search(gallery_conf["filename_pattern"], str(rst_fname)):
             assert code_output in rst
             assert warn_output in rst
         else:
@@ -774,7 +752,7 @@ def test_zip_python(gallery_conf):
     """Test generated zipfiles are not corrupt and have expected name and contents."""
     gallery_conf.update(examples_dir=os.path.join(gallery_conf["src_dir"], "examples"))
     shutil.copytree(
-        os.path.join(os.path.dirname(__file__), "tinybuild", "examples"),
+        Path(__file__).parent / "tinybuild" / "examples",
         gallery_conf["examples_dir"],
     )
     examples = downloads.list_downloadable_sources(gallery_conf["examples_dir"])
@@ -792,7 +770,7 @@ def test_zip_mixed_source(gallery_conf):
     """Test generated zipfiles are not corrupt and have expected name and contents."""
     gallery_conf.update(examples_dir=os.path.join(gallery_conf["src_dir"], "examples"))
     shutil.copytree(
-        os.path.join(os.path.dirname(__file__), "tinybuild", "examples"),
+        Path(__file__).parent / "tinybuild" / "examples",
         gallery_conf["examples_dir"],
     )
     examples = downloads.list_downloadable_sources(
@@ -822,12 +800,10 @@ def test_rst_example(gallery_conf):
     gallery_conf.update(binder=binder_conf)
     gallery_conf["min_reported_time"] = -1
 
-    example_file = os.path.join(gallery_conf["gallery_dir"], "plot.py")
+    example_file = Path(gallery_conf["gallery_dir"], "plot.py")
     sg.save_rst_example("example_rst", example_file, 0, 0, gallery_conf)
 
-    test_file = re.sub(r"\.py$", ".rst", example_file)
-    with codecs.open(test_file) as f:
-        rst = f.read()
+    rst = example_file.with_suffix(".rst").read_text()
 
     assert "lab/tree/notebooks/plot.ipynb" in rst
 

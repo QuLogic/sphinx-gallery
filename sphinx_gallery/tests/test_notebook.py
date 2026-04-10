@@ -279,7 +279,7 @@ def test_notebook_images_prefix(gallery_conf, rst_path, md_path, prefix_enabled)
     if prefix_enabled:
         gallery_conf = gallery_conf.copy()
         gallery_conf["notebook_images"] = "https://example.com/"
-    target_dir = os.path.join(gallery_conf["src_dir"], gallery_conf["gallery_dirs"])
+    target_dir = Path(gallery_conf["src_dir"], gallery_conf["gallery_dirs"])
 
     rst = textwrap.dedent(
         """\
@@ -290,7 +290,7 @@ def test_notebook_images_prefix(gallery_conf, rst_path, md_path, prefix_enabled)
        :class: image
     """
     ).format(rst_path)
-    markdown = rst2md(rst, gallery_conf, target_dir, {})
+    markdown = rst2md(rst, gallery_conf, str(target_dir), {})
 
     assert f'src="{md_path}"' in markdown
     assert 'alt="My Image"' in markdown
@@ -302,32 +302,31 @@ def test_notebook_images_prefix(gallery_conf, rst_path, md_path, prefix_enabled)
 def test_notebook_images_data_uri(gallery_conf):
     gallery_conf = gallery_conf.copy()
     gallery_conf["notebook_images"] = True
-    target_dir = os.path.join(gallery_conf["src_dir"], gallery_conf["gallery_dirs"])
+    target_dir = Path(gallery_conf["src_dir"], gallery_conf["gallery_dirs"])
 
-    test_image = os.path.join(
-        os.path.dirname(__file__), "tinybuild", "doc", "_static_nonstandard", "demo.png"
+    test_image = (
+        Path(__file__).parent / "tinybuild" / "doc" / "_static_nonstandard" / "demo.png"
     )
     # For windows we need to copy this to tmpdir because if tmpdir and this
     # file are on different drives there is no relpath between them
-    dest_dir = os.path.join(gallery_conf["src_dir"], "_static_nonstandard")
-    os.mkdir(dest_dir)
-    dest_image = os.path.join(dest_dir, "demo.png")
+    dest_dir = Path(gallery_conf["src_dir"], "_static_nonstandard")
+    dest_dir.mkdir()
+    dest_image = dest_dir / "demo.png"
     shutil.copyfile(test_image, dest_image)
     # Make into "absolute" path from source directory
-    test_image_rel = os.path.relpath(dest_image, gallery_conf["src_dir"])
-    test_image_abs = "/" + test_image_rel.replace(os.sep, "/")
+    test_image_rel = dest_image.relative_to(gallery_conf["src_dir"])
+    test_image_abs = "/" + test_image_rel.as_posix()
     rst = textwrap.dedent(
         """\
     .. image:: {}
        :width: 100px
     """
     ).format(test_image_abs)
-    markdown = rst2md(rst, gallery_conf, target_dir, {})
+    markdown = rst2md(rst, gallery_conf, str(target_dir), {})
 
     assert "data" in markdown
     assert 'src="data:image/png;base64,' in markdown
-    with open(test_image, "rb") as test_file:
-        data = base64.b64encode(test_file.read())
+    data = base64.b64encode(test_image.read_bytes())
     assert data.decode("ascii") in markdown
 
     rst = textwrap.dedent(
@@ -337,7 +336,7 @@ def test_notebook_images_data_uri(gallery_conf):
     """
     )
     with pytest.raises(ExtensionError):
-        rst2md(rst, gallery_conf, target_dir, {})
+        rst2md(rst, gallery_conf, str(target_dir), {})
 
 
 def test_jupyter_notebook(gallery_conf):
